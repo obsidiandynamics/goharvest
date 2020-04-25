@@ -1,0 +1,6 @@
+.vscode
+.DS_Store
+*.cer
+*.pem
+/bin
+/log*

@@ -1,0 +1,14 @@
+harvest:
+  baseKafkaConfig: 
+    bootstrap.servers: localhost:9094
+    security.protocol: sasl_ssl
+    ssl.ca.location: ca-cert.pem
+    sasl.mechanism: SCRAM-SHA-512
+    sasl.username: alice
+    sasl.password: alice-secret
+  leaderTopic: __consumer_offsets
+  leaderGroupID: my-app-name
+  dataSource: host=localhost port=5432 user=postgres password= dbname=postgres sslmode=disable
+  outboxTable: outbox
+logging:
+  level: Debug

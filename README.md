@@ -1,5 +1,12 @@
 <img src="https://image.flaticon.com/icons/svg/2427/2427017.svg" width="90px" alt="logo"/> `goharvest`
 ===
+![Go version](https://img.shields.io/github/go-mod/go-version/obsidiandynamics/goharvest)
+[![Build](https://travis-ci.org/obsidiandynamics/goharvest.svg?branch=master) ](https://travis-ci.org/obsidiandynamics/goharvest#)
+![Release](https://img.shields.io/github/v/release/obsidiandynamics/goharvest?color=ff69b4)
+[![Codecov](https://codecov.io/gh/obsidiandynamics/goharvest/branch/master/graph/badge.svg)](https://codecov.io/gh/obsidiandynamics/goharvest)
+[![Go Report Card](https://goreportcard.com/badge/github.com/obsidiandynamics/goharvest)](https://goreportcard.com/report/github.com/obsidiandynamics/goharvest)
+[![Total alerts](https://img.shields.io/lgtm/alerts/g/obsidiandynamics/goharvest.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/obsidiandynamics/goharvest/alerts/)
+[![GoDoc Reference](https://img.shields.io/badge/docs-GoDoc-blue.svg)](https://pkg.go.dev/github.com/obsidiandynamics/goharvest?tab=doc)
 
 Implementation of the [Transactional outbox](https://microservices.io/patterns/data/transactional-outbox.html) pattern for Postgres and Kafka.
 

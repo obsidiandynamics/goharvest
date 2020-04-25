@@ -1,0 +1,18 @@
+harvest:
+  baseKafkaConfig: 
+    bootstrap.servers: localhost:9092
+  producerKafkaConfig:
+    compression.type: lz4
+    delivery.timeout.ms: 10000
+  leaderTopic: my-app-name
+  leaderGroupID: my-app-name
+  dataSource: host=localhost port=5432 user=postgres password= dbname=postgres sslmode=disable
+  outboxTable: outbox
+  limits:
+    minPollInterval: 1s
+    maxInFlightRecords: 1000
+    minMetricsInterval: 5s
+    sendConcurrency: 4
+    sendBuffer: 10
+logging:
+  level: Debug
