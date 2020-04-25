@@ -1,6 +1,6 @@
 #!/bin/sh
 
-cat <<EOF | psql -U postgres
+cat <<EOF | psql -U postgres -h localhost
 CREATE TABLE IF NOT EXISTS outbox (
   id                  BIGSERIAL PRIMARY KEY,
   create_time         TIMESTAMP WITH TIME ZONE NOT NULL,

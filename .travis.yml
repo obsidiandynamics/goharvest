@@ -12,6 +12,10 @@ before_install:
     docker run --name kafka --rm -d -p 2181:2181 -p 9092:9092 \
         -e KAFKA_ADVERTISED_LISTENERS=PLAINTEXT://localhost:9092 \
         obsidiandynamics/kafka
+  - |
+    docker run -it --rm -p 5432:5432 \
+        -e POSTGRES_HOST_AUTH_METHOD=trust \
+        postgres:12
   - go get -u -v all
 
 script:
