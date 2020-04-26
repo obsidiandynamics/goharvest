@@ -284,7 +284,6 @@ for i := 0; i < 10; i++ {
 tx.Commit()
 ```
 
-
 # How `goharvest` works
 Harvesting of the outbox table sounds straightforward, but there are several notable challenges:
 
@@ -317,8 +316,7 @@ Once a `goharvest` client assumes leader status, it will generate a random UUID 
 
 The diagram below illustrates the NELI leader election algorithm.
 
-//TODO diagram
-
+<img src="https://raw.githubusercontent.com/wiki/obsidiandynamics/goharvest/images/figure-leader-election.png" width="100%" alt="NELI leader election"/>
 
 
 ## Causality, at-least-once delivery and process state
@@ -354,7 +352,7 @@ Owing to the unreliable nature of networks and I/O devices, there may be an erro
 
 The following diagram illustrates the MP/R algorithm. Each of the numbered steps is explained below.
 
-//TODO diagram.
+<img src="https://raw.githubusercontent.com/wiki/obsidiandynamics/goharvest/images/figure-mpr.png" width="100%" alt="MP/R algorithm"/>
 
 ### Key variables
 |Variable                    |Type         |Description                     |Used by|
@@ -512,32 +510,11 @@ Causality is satisfied by observing the following premise:
 
 Even though marking is always done from the head-end of the outbox table, it is not necessarily monotonic due to the sparsity of records. The marking of records will result in them being skipped on the next pass, but latent effects of transactions that were in flight during the last marking phase may materialise 'behind' the marked records. This is because not all records are causally related, and multiple concurrent processes and threads may be contending for writes to the outbox table. Database-generated sequential IDs don't help here: a transaction *T0* may begin before an unrelated *T1* and may also obtain a lower number from the sequence, but it may still complete after *T1*. In other words, *T1* may be observed in the absence of *T0* for some time, then *T0* might appear later, occupying a slot before *T1* in the table. This phenomenon is illustrated below.
 
-//TODO diagram
+<img src="https://raw.githubusercontent.com/wiki/obsidiandynamics/goharvest/images/figure-sequence-gaps.png" width="100%" alt="Sequence gaps"/>
 
 Even though 'gaps' may be filled retrospectively, this only applies to unrelated record pairs. This is not a problem for MP/R because marking does not utilise an offset; it always starts from the top of the table. Any given marking pass will pick up causally-related records in their intended order, while unrelated records may be identified in arbitrary order. (Consult the [FAQ](#q-what-are-some-of-the-other-approaches) for more information on how MP/R compares to its alternatives.) To account for delivery failures and leader takeovers, the use of a per-key barrier ensures that at most one record is in an indeterminate state for any given key at any given time. Should that record be retried for whatever reason — on the same process or a different one — the worst-case outcome is a duplicated record, but not one that is out of order with respect to its successor or predecessor.
 
 State management is simplified because the query always starts at the head-end of the outbox table and only skips those records that the current leader has processed. There is no need to track the offset of the harvester's progress through the outbox table. Records that may have been in-flight on a failed process are automatically salvaged because their `leader_id` value will not match that of the current leader. This makes MP/R **unimodal** — it takes the same approach irrespective of whether a record has *never* been processed or because it is *no longer* being processed. In other words, there are no `if` statements in the code to distinguish between routine operation and the salvaging of in-flight records from failed processes.
-
-# Getting started
-
-
-```sql
-CREATE TABLE outbox (
-  id                  BIGSERIAL PRIMARY KEY,
-  create_time         TIMESTAMP WITH TIME ZONE NOT NULL,
-  kafka_topic         VARCHAR(249) NOT NULL,
-  kafka_key           VARCHAR(100) NOT NULL,
-  kafka_value         VARCHAR(10000),
-  kafka_header_keys   TEXT[] NOT NULL,
-  kafka_header_values TEXT[] NOT NULL,
-  leader_id           UUID
-)
-```
-
-# Roadmap
-* Nullable Kafka (payload) values, to allow for message compaction scenarios.
-* Kafka headers.
-* MySQL support.
 
 
 # FAQ
