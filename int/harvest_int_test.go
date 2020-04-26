@@ -49,7 +49,7 @@ const (
 	generateUniqueKeys            = 10
 	receiverPollDuration          = 500 * time.Millisecond
 	receiverNoMessagesWarningTime = 10 * time.Second
-	waitTimeout                   = 90 * time.Second
+	waitTimeout                   = 1800 * time.Second
 )
 
 var logger = overlog.New(overlog.StandardFormat())

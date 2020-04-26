@@ -12,7 +12,7 @@ soaktest: dirs
 	SOAK_CMD="make test" sh/soak.sh
 
 int: FORCE
-	GOLABELS=int go test -timeout 180s -v -race -count=1 ./int
+	GOLABELS=int go test -timeout 3600s -v -race -count=1 ./int
 
 soakint: FORCE
 	SOAK_CMD="make int" sh/soak.sh
