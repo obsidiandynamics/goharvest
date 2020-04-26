@@ -79,6 +79,7 @@ type harvest struct {
 	sendBattery         battery
 }
 
+// New creates a new Harvest instance from the supplied config.
 func New(config Config) (Harvest, error) {
 	config.SetDefaults()
 	if err := config.Validate(); err != nil {
@@ -109,6 +110,7 @@ func New(config Config) (Harvest, error) {
 	return h, nil
 }
 
+// State obtains the present state of this Harvest instance.
 func (h *harvest) State() State {
 	return h.state.Get().(State)
 }
@@ -133,7 +135,9 @@ func (h *harvest) cleanupFailedStart() {
 	}
 }
 
+// Start the harvester.
 func (h *harvest) Start() error {
+	ensureState(h.State() == Created, "Cannot start at this time")
 	defer h.cleanupFailedStart()
 
 	db, err := h.config.DatabaseBindingProvider(h.config.DataSource, h.config.OutboxTable)
@@ -177,10 +181,13 @@ func (h *harvest) Start() error {
 	return nil
 }
 
+// IsLeader returns true if the current Harvest is the leader among competing instances.
 func (h *harvest) IsLeader() bool {
 	return h.LeaderID() != nil
 }
 
+// LeaderID returns the leader UUID of the current instance, if it is a leader at the time of this call.
+// Otherwise, a nil is returned.
 func (h *harvest) LeaderID() *uuid.UUID {
 	if stored := h.leaderID.Load().(uuid.UUID); stored != noLeader {
 		return &stored
@@ -188,10 +195,14 @@ func (h *harvest) LeaderID() *uuid.UUID {
 	return nil
 }
 
+// InFlightRecords returns the number of in-flight records; i.e. records that have been published on Kafka for which an
+// acknowledgement is still pending.
 func (h *harvest) InFlightRecords() int {
 	return h.inFlightRecords.GetInt()
 }
 
+// InFlightRecordKeys returns the keys of records that are still in-flight. For any given key, there will be at most one
+// record pending acknowledgement.
 func (h *harvest) InFlightRecordKeys() []string {
 	view := h.inFlightKeys.View()
 	keys := make([]string, len(view))
@@ -204,7 +215,12 @@ func (h *harvest) InFlightRecordKeys() []string {
 	return keys
 }
 
+// SetEventHandler assigns an optional event handler callback to be notified of changes in leader state as well as other
+// events of interest.
+//
+// This method must be invoked prior to Start().
 func (h *harvest) SetEventHandler(eventHandler EventHandler) {
+	ensureState(h.State() == Created, "Cannot set event handler at this time")
 	h.eventHandler = eventHandler
 }
 
@@ -507,10 +523,18 @@ func (h *harvest) cleanupLeaderState() {
 	h.leaderID.Store(noLeader)
 }
 
+// Stop the harvester, returning immediately.
+//
+// This method does not wait until the underlying Goroutines have been terminated
+// and all resources have been disposed off properly. This is accomplished by calling Await()
 func (h *harvest) Stop() {
 	h.shouldBeRunningFlag.Set(0)
 }
 
+// Await the termination of this Harvest instance.
+//
+// This method blocks indefinitely, returning only when this instance has completed an orderly shutdown. I.e.
+// when all Goroutines have returned and all resources have been disposed of.
 func (h *harvest) Await() error {
 	h.state.Await(concurrent.RefEqual(Stopped), concurrent.Indefinitely)
 	panicCause := h.panicCause.Load()

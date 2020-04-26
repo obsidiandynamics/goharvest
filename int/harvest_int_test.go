@@ -282,7 +282,7 @@ func (g generator) stop() chan int {
 }
 
 func startGenerator(t *testing.T, testID uuid.UUID, db *sql.DB, interval time.Duration, keys int) generator {
-	st := stasher.NewStasher(outboxTable)
+	st := stasher.New(outboxTable)
 	ctx, cancel := concurrent.Forever(context.Background())
 	recs := concurrent.NewAtomicCounter()
 	stopped := make(chan int, 1)

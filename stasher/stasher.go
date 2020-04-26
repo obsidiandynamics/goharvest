@@ -1,3 +1,4 @@
+// Package stasher is a helper for inserting records into an outbox table within transaction scope.
 package stasher
 
 import (
@@ -8,6 +9,7 @@ import (
 	"github.com/obsidiandynamics/goharvest"
 )
 
+// Stasher writes records into the outbox table.
 type Stasher interface {
 	Stash(tx *sql.Tx, rec goharvest.OutboxRecord) error
 	Prepare(tx *sql.Tx) (PreStash, error)
@@ -17,7 +19,8 @@ type stasher struct {
 	query string
 }
 
-func NewStasher(outboxTable string) Stasher {
+// New creates a new Stasher instance for the given outboxTable.
+func New(outboxTable string) Stasher {
 	return &stasher{fmt.Sprintf(insertQueryTemplate, outboxTable)}
 }
 
@@ -27,10 +30,13 @@ INSERT INTO %s (create_time, kafka_topic, kafka_key, kafka_value, kafka_header_k
 VALUES (NOW(), $1, $2, $3, $4, $5)
 `
 
+// PreStash is a fluent chain produced by Prepare()
 type PreStash struct {
 	stmt *sql.Stmt
 }
 
+// Prepare a statement for stashing records, where the latter is expected to be invoked multiple times from
+// a given transaction.
 func (s *stasher) Prepare(tx *sql.Tx) (PreStash, error) {
 	stmt, err := tx.Prepare(s.query)
 	if err != nil {
@@ -39,7 +45,14 @@ func (s *stasher) Prepare(tx *sql.Tx) (PreStash, error) {
 	return PreStash{stmt}, nil
 }
 
+// Stash one record using the prepared statement.
 func (p PreStash) Stash(rec goharvest.OutboxRecord) error {
+	headerKeys, headerValues := makeHeaders(rec)
+	_, err := p.stmt.Exec(rec.KafkaTopic, rec.KafkaKey, rec.KafkaValue, pq.Array(headerKeys), pq.Array(headerValues))
+	return err
+}
+
+func makeHeaders(rec goharvest.OutboxRecord) ([]string, []string) {
 	var headerKeys, headerValues []string
 	if numHeaders := len(rec.KafkaHeaders); numHeaders > 0 {
 		headerKeys = make([]string, numHeaders)
@@ -50,11 +63,12 @@ func (p PreStash) Stash(rec goharvest.OutboxRecord) error {
 	} else {
 		headerKeys, headerValues = []string{}, []string{}
 	}
-	_, err := p.stmt.Exec(rec.KafkaTopic, rec.KafkaKey, rec.KafkaValue, pq.Array(headerKeys), pq.Array(headerValues))
-	return err
+	return headerKeys, headerValues
 }
 
+// Stash one record within the given tx transaction scope.
 func (s *stasher) Stash(tx *sql.Tx, rec goharvest.OutboxRecord) error {
-	_, err := tx.Exec(s.query, rec.KafkaTopic, rec.KafkaKey, rec.KafkaValue)
+	headerKeys, headerValues := makeHeaders(rec)
+	_, err := tx.Exec(s.query, rec.KafkaTopic, rec.KafkaKey, rec.KafkaValue, pq.Array(headerKeys), pq.Array(headerValues))
 	return err
 }

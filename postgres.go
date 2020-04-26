@@ -58,10 +58,12 @@ func closeResources(stmts ...*sql.Stmt) {
 
 type databaseProvider func() (*sql.DB, error)
 
+// StandardPostgresBindingProvider returns a DatabaseBindingProvider that connects to a real Postgres database.
 func StandardPostgresBindingProvider() DatabaseBindingProvider {
 	return NewPostgresBinding
 }
 
+// NewPostgresBinding creates a Postgres binding for the given dataSource and outboxTable args.
 func NewPostgresBinding(dataSource string, outboxTable string) (DatabaseBinding, error) {
 	return newPostgresBinding(func() (*sql.DB, error) {
 		return sql.Open("postgres", dataSource)

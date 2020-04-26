@@ -50,7 +50,7 @@ func main() {
 	}
 	defer db.Close()
 
-	st := stasher.NewStasher(outboxTable)
+	st := stasher.New(outboxTable)
 
 	meter := metric.NewMeter("pump", 5*time.Second)
 
