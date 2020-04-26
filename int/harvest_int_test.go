@@ -332,7 +332,7 @@ func startGenerator(t *testing.T, testID uuid.UUID, db *sql.DB, interval time.Du
 			rec := OutboxRecord{
 				KafkaTopic: topic,
 				KafkaKey:   strconv.Itoa(seq % keys),
-				KafkaValue: StringPtr(testIDStr + "_" + strconv.Itoa(seq)),
+				KafkaValue: String(testIDStr + "_" + strconv.Itoa(seq)),
 				KafkaHeaders: KafkaHeaders{
 					KafkaHeader{Key: "testId", Value: testIDStr},
 				},

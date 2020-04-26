@@ -73,7 +73,7 @@ func main() {
 		rand := rand.Uint64()
 		var value *string
 		if !blank {
-			value = goharvest.StringPtr(fmt.Sprintf("value-%x", rand))
+			value = goharvest.String(fmt.Sprintf("value-%x", rand))
 		}
 
 		rec := goharvest.OutboxRecord{

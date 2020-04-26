@@ -408,7 +408,7 @@ func TestMetrics(t *testing.T) {
 		backlogRecords := generateRecords(1, 0)
 		deliverAll(backlogRecords, nil, prodRef.Get().(*prodMock).events)
 		if assert.GreaterOrEqual(t, eh.length(), 2) {
-			e := eh.list()[1].(*MeterRead)
+			e := eh.list()[1].(MeterRead)
 			if stats := e.Stats(); assert.NotNil(t, stats) {
 				assert.Equal(t, stats.Name, "throughput")
 			}
@@ -1027,7 +1027,7 @@ func generateRecords(numRecords int, startID int) []OutboxRecord {
 			CreateTime: now,
 			KafkaTopic: "test_topic",
 			KafkaKey:   fmt.Sprintf("key-%x", i),
-			KafkaValue: StringPtr(fmt.Sprintf("value-%x", i)),
+			KafkaValue: String(fmt.Sprintf("value-%x", i)),
 			KafkaHeaders: KafkaHeaders{
 				KafkaHeader{Key: "ID", Value: strconv.FormatInt(int64(startID+i), 10)},
 			},
@@ -1045,7 +1045,7 @@ func generateCyclicKeyedRecords(numKeys int, numRecords int, startID int) []Outb
 			CreateTime: now,
 			KafkaTopic: "test_topic",
 			KafkaKey:   fmt.Sprintf("key-%x", i%numKeys),
-			KafkaValue: StringPtr(fmt.Sprintf("value-%x", i)),
+			KafkaValue: String(fmt.Sprintf("value-%x", i)),
 			KafkaHeaders: KafkaHeaders{
 				KafkaHeader{Key: "ID", Value: strconv.FormatInt(int64(startID+i), 10)},
 			},

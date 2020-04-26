@@ -32,8 +32,8 @@ type OutboxRecord struct {
 	LeaderID     *uuid.UUID
 }
 
-// StringPtr is a convenience function that returns a pointer to the given str argument, for use with setting OutboxRecord.Value.
-func StringPtr(str string) *string {
+// String is a convenience function that returns a pointer to the given str argument, for use with setting OutboxRecord.Value.
+func String(str string) *string {
 	return &str
 }
 

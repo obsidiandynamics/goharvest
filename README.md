@@ -1,4 +1,4 @@
-<img src="https://raw.githubusercontent.com/wiki/obsidiandynamics/goharvest/images/goharvest-logo-wide.png" width="200px" alt="logo"/>
+<img src="https://raw.githubusercontent.com/wiki/obsidiandynamics/goharvest/images/goharvest-logo-wide.png" width="400px" alt="logo"/>&nbsp;
 ===
 ![Go version](https://img.shields.io/github/go-mod/go-version/obsidiandynamics/goharvest)
 [![Build](https://travis-ci.org/obsidiandynamics/goharvest.svg?branch=master) ](https://travis-ci.org/obsidiandynamics/goharvest#)
@@ -8,11 +8,282 @@
 [![Total alerts](https://img.shields.io/lgtm/alerts/g/obsidiandynamics/goharvest.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/obsidiandynamics/goharvest/alerts/)
 [![GoDoc Reference](https://img.shields.io/badge/docs-GoDoc-blue.svg)](https://pkg.go.dev/github.com/obsidiandynamics/goharvest?tab=doc)
 
-`goharvest` is a Go implementation of the [Transactional outbox](https://microservices.io/patterns/data/transactional-outbox.html) pattern for Postgres and Kafka.
+`goharvest` is a Go implementation of the [Transactional Outbox](https://microservices.io/patterns/data/transactional-outbox.html) pattern for Postgres and Kafka.
 
-<img src="https://raw.githubusercontent.com/wiki/obsidiandynamics/goharvest/images/figure-outbox.png" width=100%" alt="Transactional Outbox"/>
+<img src="https://raw.githubusercontent.com/wiki/obsidiandynamics/goharvest/images/figure-outbox.png" width="100%" alt="Transactional Outbox"/>
 
 While `goharvest` is a complex beast, the end result is dead simple: to publish Kafka messages reliably and atomically, simply write a record to a dedicated **outbox table** in a transaction, alongside any other database changes. (Outbox schema provided below.) `goharvest` scrapes the outbox table in the background and publishes records to a Kafka topic of the application's choosing, using the key, value and headers specified in the outbox record. `goharvest` currently works with Postgres. It maintains causal order of messages and does not require CDC to be enabled on the database, making for a zero-hassle setup. It handles thousands of records/second on commodity hardware.
+
+# Getting started
+## 1. Create an outbox table for your application
+```sql
+CREATE TABLE IF NOT EXISTS outbox (
+  id                  BIGSERIAL PRIMARY KEY,
+  create_time         TIMESTAMP WITH TIME ZONE NOT NULL,
+  kafka_topic         VARCHAR(249) NOT NULL,
+  kafka_key           VARCHAR(100) NOT NULL,  -- pick your own maximum key size
+  kafka_value         VARCHAR(10000),         -- pick your own maximum value size
+  kafka_header_keys   TEXT[] NOT NULL,
+  kafka_header_values TEXT[] NOT NULL,
+  leader_id           UUID
+)
+```
+
+## 2. Run `goharvest`
+### Standalone mode
+This runs `goharvest` within a separate process called `reaper`, which will work alongside **any** application that writes to a standard outbox. (Not just applications written in Go.)
+
+#### Install `reaper`
+```sh
+go get -u github.com/obsidiandynamics/goharvest/cmd/reaper
+```
+
+#### Create `reaper.yaml` configuration
+```yaml
+harvest:
+  baseKafkaConfig: 
+    bootstrap.servers: localhost:9092
+  producerKafkaConfig:
+    compression.type: lz4
+    delivery.timeout.ms: 10000
+  leaderTopic: my-app-name
+  leaderGroupID: my-app-name
+  dataSource: host=localhost port=5432 user=postgres password= dbname=postgres sslmode=disable
+  outboxTable: outbox
+  limits:
+    minPollInterval: 1s
+    heartbeatTimeout: 5s
+    maxInFlightRecords: 1000
+    minMetricsInterval: 5s
+    sendConcurrency: 4
+    sendBuffer: 10
+logging:
+  level: Debug
+```
+
+#### Start `reaper`
+```sh
+reaper -f reaper.yaml
+```
+
+### Embedded mode
+`goharvest` can be run in the same process as your application.
+
+#### Add the dependency
+```sh
+go get -u github.com/obsidiandynamics/goharvest
+```
+
+#### Create and start a `Harvest` instance
+```go
+import "github.com/obsidiandynamics/goharvest"
+```
+
+```go
+// Configure the harvester. It will use its own database and Kafka connections under the hood.
+config := Config{
+  BaseKafkaConfig: KafkaConfigMap{
+    "bootstrap.servers": "localhost:9092",
+  },
+  DataSource: "host=localhost port=5432 user=postgres password= dbname=postgres sslmode=disable",
+}
+
+// Create a new harvester.
+harvest, err := New(config)
+if err != nil {
+  panic(err)
+}
+
+// Start harvesting in the background.
+err = harvest.Start()
+if err != nil {
+  panic(err)
+}
+
+// Wait indefinitely for the harvester to end.
+log.Fatal(harvest.Await())
+```
+
+### Using a custom logger
+```go
+import (
+  "github.com/obsidiandynamics/goharvest"
+  scribelogrus "github.com/obsidiandynamics/libstdgo/scribe/logrus"
+  "github.com/sirupsen/logrus"
+)
+```
+
+```sh
+log := logrus.StandardLogger()
+log.SetLevel(logrus.DebugLevel)
+
+// Configure the custom logger using a binding.
+config := Config{
+  BaseKafkaConfig: KafkaConfigMap{
+    "bootstrap.servers": "localhost:9092",
+  },
+  Scribe:     scribe.New(scribelogrus.Bind()),
+  DataSource: "host=localhost port=5432 user=postgres password= dbname=postgres sslmode=disable",
+}
+```
+
+### Listening for leader status updates
+Just like `goharvest` uses [NELI](https://github.com/obsidiandynamics/goneli) to piggy-back on Kafka's leader election, you can piggy-back on `goharvest` to get leader status updates:
+
+```go
+log := logrus.StandardLogger()
+log.SetLevel(logrus.TraceLevel)
+config := Config{
+  BaseKafkaConfig: KafkaConfigMap{
+    "bootstrap.servers": "localhost:9092",
+  },
+  DataSource: "host=localhost port=5432 user=postgres password= dbname=postgres sslmode=disable",
+  Scribe:     scribe.New(scribelogrus.Bind()),
+}
+
+// Create a new harvester and register an event hander.
+harvest, err := New(config)
+
+// Register a handler callback, invoked when an event occurs within goharvest.
+// The callback is completely optional; it lets the application piggy-back on leader
+// status updates, in case it needs to schedule some additional work (other than
+// harvesting outbox records) that should only be run on one process at any given time.
+harvest.SetEventHandler(func(e Event) {
+  switch event := e.(type) {
+  case LeaderAcquired:
+    // The application may initialise any state necessary to perform work as a leader.
+    log.Infof("Got event: leader acquired: %v", event.LeaderID())
+  case LeaderRefreshed:
+    // Indicates that a new leader ID was generated, as a result of having to remark
+    // a record (typically as due to an earlier delivery error). This is purely
+    // informational; there is nothing an application should do about this, other
+    // than taking note of the new leader ID if it has come to rely on it.
+    log.Infof("Got event: leader refreshed: %v", event.LeaderID())
+  case LeaderRevoked:
+    // The application may block the callback until it wraps up any in-flight
+    // activity. Only upon returning from the callback, will a new leader be elected.
+    log.Infof("Got event: leader revoked")
+  case LeaderFenced:
+    // The application must immediately terminate any ongoing activity, on the assumption
+    // that another leader may be imminently elected. Unlike the handling of LeaderRevoked,
+    // blocking in the callback will not prevent a new leader from being elected.
+    log.Infof("Got event: leader fenced")
+  case MeterRead:
+    // Periodic statistics regarding the harvester's throughput.
+    log.Infof("Got event: meter read: %v", event.Stats())
+  }
+})
+
+// Start harvesting in the background.
+err = harvest.Start()
+```
+
+### Which mode should I use
+Running `goharvest` in standalone mode using `reaper` is the recommended approach for most use cases, as it fully insulates the harvester from the rest of the application. Ideally, you should deploy `reaper` as a sidecar daemon, to run alongside your application. All the reaper needs is access to the outbox table and the Kafka cluster.
+
+Embedded `goharvest` is useful if you require additional insights into its operation, which is accomplished by registering an `EventHandler` callback, as shown in the example above. This callback is invoked whenever the underlying leader status changes, which may be useful if you need to schedule additional workloads that should only be run on one process at any given time.
+
+## 3. Write outbox records
+### Directly, using SQL
+You can write database records from any app, by simply issuing the following `INSERT` statement:
+
+```sql
+INSERT INTO ${outbox_table} (
+  create_time, 
+  kafka_topic, 
+  kafka_key, 
+  kafka_value, 
+  kafka_header_keys, 
+  kafka_header_values
+)
+VALUES (NOW(), $1, $2, $3, $4, $5)
+```
+
+Replace `${outbox_table}` and bind the query variables as appropriate:
+
+* `kafka_topic` column specifies an arbitrary topic name, which may differ among records.
+* `kafka_key` is a mandatory `string` key. Each record must be published with a specified key, which will affect its placement among the topic's partitions.
+* `kafka_value` is an optional `string` value. If unspecified, the record will be published with a `nil` value, allowing it to be used as a compaction tombstone.
+* `kafka_header_keys` and `kafka_header_values` are arrays that specify the keys and values of record headers. When used each element in `kafka_header_keys` corresponds to an element in `kafka_header_values` at the same index. If not using headers, set both arrays to empty.
+
+> **Note**: **Writing outbox records should be performed in the same transaction as other related database updates.** Otherwise, messaging will not be atomic — the updates may be stably persisted while the message might be lost, and *vice versa*.
+
+### Using `stasher`
+The `goharvest` library comes with a `stasher` helper package for writing records to an outbox.
+
+#### One-off messages
+When one database update corresponds to one message, the easiest approach is to call `Stasher.Stash()`:
+
+```go
+import "github.com/obsidiandynamics/goharvest"
+```
+
+```go
+db, err := sql.Open("postgres", "host=localhost port=5432 user=postgres password= dbname=postgres sslmode=disable")
+if err != nil {
+  panic(err)
+}
+defer db.Close()
+
+st := New("outbox")
+
+// Begin a transaction.
+tx, _ := db.Begin()
+defer tx.Rollback()
+
+// Update other database entities in transaction scope.
+
+// Stash an outbox record for subsequent harvesting.
+err = st.Stash(tx, goharvest.OutboxRecord{
+  KafkaTopic: "my-app.topic",
+  KafkaKey:   "hello",
+  KafkaValue: goharvest.String("world"),
+  KafkaHeaders: goharvest.KafkaHeaders{
+    {Key: "applicationId", Value: "my-app"},
+  },
+})
+if err != nil {
+  panic(err)
+}
+
+// Commit the transaction.
+tx.Commit()
+```
+
+#### Multiple messages
+Sending multiple messages within a single transaction may be done more efficiently using prepared statements:
+
+```go
+// Begin a transaction.
+tx, _ := db.Begin()
+defer tx.Rollback()
+
+// Update other database entities in transaction scope.
+// ...
+
+// Formulates a prepared statement that may be reused within the scope of the transaction.
+prestash, _ := st.Prepare(tx)
+
+// Publish a bunch of messages using the same prepared statement.
+for i := 0; i < 10; i++ {
+  // Stash an outbox record for subsequent harvesting.
+  err = prestash.Stash(goharvest.OutboxRecord{
+    KafkaTopic: "my-app.topic",
+    KafkaKey:   "hello",
+    KafkaValue: goharvest.String("world"),
+    KafkaHeaders: goharvest.KafkaHeaders{
+      {Key: "applicationId", Value: "my-app"},
+    },
+  })
+  if err != nil {
+    panic(err)
+  }
+}
+
+// Commit the transaction.
+tx.Commit()
+```
+
 
 # How `goharvest` works
 Harvesting of the outbox table sounds straightforward, but there are several notable challenges:

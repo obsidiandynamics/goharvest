@@ -30,7 +30,7 @@ INSERT INTO %s (create_time, kafka_topic, kafka_key, kafka_value, kafka_header_k
 VALUES (NOW(), $1, $2, $3, $4, $5)
 `
 
-// PreStash is a fluent chain produced by Prepare()
+// PreStash houses a prepared statement bound to the scope of a single transaction.
 type PreStash struct {
 	stmt *sql.Stmt
 }
@@ -66,7 +66,7 @@ func makeHeaders(rec goharvest.OutboxRecord) ([]string, []string) {
 	return headerKeys, headerValues
 }
 
-// Stash one record within the given tx transaction scope.
+// Stash one record within the given transaction scope.
 func (s *stasher) Stash(tx *sql.Tx, rec goharvest.OutboxRecord) error {
 	headerKeys, headerValues := makeHeaders(rec)
 	_, err := tx.Exec(s.query, rec.KafkaTopic, rec.KafkaKey, rec.KafkaValue, pq.Array(headerKeys), pq.Array(headerValues))

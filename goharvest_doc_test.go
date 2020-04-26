@@ -8,7 +8,7 @@ import (
 	"github.com/obsidiandynamics/libstdgo/check"
 	"github.com/obsidiandynamics/libstdgo/scribe"
 	scribelogrus "github.com/obsidiandynamics/libstdgo/scribe/logrus"
-	logrus "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 )
 
 func Example() {
@@ -39,7 +39,7 @@ func Example() {
 		}
 	}()
 
-	// Configure the harvester. It will use its own database connections under the hood.
+	// Configure the harvester. It will use its own database and Kafka connections under the hood.
 	config := Config{
 		BaseKafkaConfig: KafkaConfigMap{
 			"bootstrap.servers": "localhost:9092",
@@ -126,13 +126,13 @@ func Example_withSaslSslAndCustomProducerConfig() {
 		panic(err)
 	}
 
-	// Start it.
+	// Start harvesting in the background.
 	err = harvest.Start()
 	if err != nil {
 		panic(err)
 	}
 
-	// Wait indefinitely for it to end.
+	// Wait indefinitely for the harvester to end.
 	log.Fatal(harvest.Await())
 }
 
@@ -159,22 +159,37 @@ func Example_withEventHandler() {
 		panic(err)
 	}
 
+	// Register a handler callback, invoked when an event occurs within goharvest.
+	// The callback is completely optional; it lets the application piggy-back on leader
+	// status updates, in case it needs to schedule some additional work (other than
+	// harvesting outbox records) that should only be run on one process at any given time.
 	harvest.SetEventHandler(func(e Event) {
 		switch event := e.(type) {
 		case LeaderAcquired:
+			// The application may initialise any state necessary to perform work as a leader.
 			log.Infof("Got event: leader acquired: %v", event.LeaderID())
 		case LeaderRefreshed:
+			// Indicates that a new leader ID was generated, as a result of having to remark
+			// a record (typically as due to an earlier delivery error). This is purely
+			// informational; there is nothing an application should do about this, other
+			// than taking note of the new leader ID if it has come to rely on it.
 			log.Infof("Got event: leader refreshed: %v", event.LeaderID())
 		case LeaderRevoked:
+			// The application may block the callback until it wraps up any in-flight
+			// activity. Only upon returning from the callback, will a new leader be elected.
 			log.Infof("Got event: leader revoked")
 		case LeaderFenced:
+			// The application must immediately terminate any ongoing activity, on the assumption
+			// that another leader may be imminently elected. Unlike the handling of LeaderRevoked,
+			// blocking in the callback will not prevent a new leader from being elected.
 			log.Infof("Got event: leader fenced")
-		case *MeterRead:
+		case MeterRead:
+			// Periodic statistics regarding the harvester's throughput.
 			log.Infof("Got event: meter read: %v", event.Stats())
 		}
 	})
 
-	// Start harvesting.
+	// Start harvesting in the background.
 	err = harvest.Start()
 	if err != nil {
 		panic(err)

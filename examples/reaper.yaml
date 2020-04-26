@@ -10,6 +10,7 @@ harvest:
   outboxTable: outbox
   limits:
     minPollInterval: 1s
+    heartbeatTimeout: 5s
     maxInFlightRecords: 1000
     minMetricsInterval: 5s
     sendConcurrency: 4

@@ -262,7 +262,7 @@ func backgroundPoller(h *harvest) {
 
 		if isLeader {
 			if h.forceRemarkFlag.Get() == 1 {
-				h.logger().D()("Re-mark requested")
+				h.logger().D()("Remark requested")
 				h.shutdownSendBattery()
 				h.refreshLeader()
 			}
@@ -459,7 +459,7 @@ func (h *harvest) updateStats() {
 	defer h.throughputLock.Unlock()
 	h.throughput.MaybeStatsCall(func(stats metric.MeterStats) {
 		h.logger().D()("%v", stats)
-		h.eventHandler(&MeterRead{stats})
+		h.eventHandler(MeterRead{stats})
 	})
 	h.throughput.Add(1)
 }

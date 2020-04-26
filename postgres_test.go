@@ -154,7 +154,7 @@ func TestExecuteMark_success(t *testing.T) {
 			CreateTime: time.Now(),
 			KafkaTopic: "kafka_topic",
 			KafkaKey:   "kafka_key",
-			KafkaValue: StringPtr("kafka_value"),
+			KafkaValue: String("kafka_value"),
 			KafkaHeaders: KafkaHeaders{
 				KafkaHeader{Key: "some-key", Value: "some-value"},
 			},
@@ -165,7 +165,7 @@ func TestExecuteMark_success(t *testing.T) {
 			CreateTime:   time.Now(),
 			KafkaTopic:   "kafka_topic",
 			KafkaKey:     "kafka_key",
-			KafkaValue:   StringPtr("kafka_value"),
+			KafkaValue:   String("kafka_value"),
 			KafkaHeaders: KafkaHeaders{},
 			LeaderID:     nil,
 		},
