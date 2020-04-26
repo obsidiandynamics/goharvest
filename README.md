@@ -10,10 +10,9 @@
 
 `goharvest` is a Go implementation of the [Transactional outbox](https://microservices.io/patterns/data/transactional-outbox.html) pattern for Postgres and Kafka.
 
-![Pattern overview](https://microservices.io/i/patterns/data/ReliablePublication.png)
-*Diagram courtesy of Chris Richardson*
+<img src="https://raw.githubusercontent.com/wiki/obsidiandynamics/goharvest/images/figure-outbox.png" width=100%" alt="Transactional Outbox"/>
 
-Considering the diagram above, `goharvest` plays the role of the *Message Relay*. It efficiently retrieves records from a relational database (currently Postgres) and publishes them to Kafka. It maintains causal order of records and does not require CDC to be enabled on the database. It handles 5K records/s on low-powered hardware.
+While `goharvest` is a complex beast, the end result is dead simple: to publish Kafka messages reliably and atomically, simply write a record to a dedicated **outbox table** in a transaction, alongside any other database changes. (Outbox schema provided below.) `goharvest` scrapes the outbox table in the background and publishes records to a Kafka topic of the application's choosing, using the key, value and headers specified in the outbox record. `goharvest` currently works with Postgres. It maintains causal order of messages and does not require CDC to be enabled on the database, making for a zero-hassle setup. It handles thousands of records/second on commodity hardware.
 
 # How `goharvest` works
 Harvesting of the outbox table sounds straightforward, but there are several notable challenges:
