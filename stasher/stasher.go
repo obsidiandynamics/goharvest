@@ -39,10 +39,7 @@ type PreStash struct {
 // a given transaction.
 func (s *stasher) Prepare(tx *sql.Tx) (PreStash, error) {
 	stmt, err := tx.Prepare(s.query)
-	if err != nil {
-		return PreStash{}, err
-	}
-	return PreStash{stmt}, nil
+	return PreStash{stmt}, err
 }
 
 // Stash one record using the prepared statement.
