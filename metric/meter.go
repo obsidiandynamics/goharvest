@@ -78,6 +78,8 @@ func (m *Meter) Add(amount int64) {
 	m.totalCount += amount
 }
 
+// MaybeStats conditionally returns a stats snapshot if the current sampling interval has lapsed. Otherwise, if the
+// sampling interval is still valid, a nil is returned.
 func (m *Meter) MaybeStats() *MeterStats {
 	now := time.Now()
 	elapsedInIntervalMs := now.Sub(m.lastIntervalStart).Milliseconds()
@@ -103,18 +105,24 @@ func (m *Meter) MaybeStats() *MeterStats {
 	return nil
 }
 
+// MeterStatsCallback is invoked by MaybeStatsCall().
 type MeterStatsCallback func(stats MeterStats)
 
-func (m *Meter) MaybeStatsCall(cb MeterStatsCallback) {
+// MaybeStatsCall conditionally invokes the given MeterStatsCallback if the current sampling interval has lapsed, returning true
+// if the callback was invoked.
+func (m *Meter) MaybeStatsCall(cb MeterStatsCallback) bool {
 	s := m.MaybeStats()
 	if s != nil {
 		cb(*s)
+		return true
 	}
+	return false
 }
 
-func (m *Meter) MaybeStatsLog(logger scribe.Logger) {
-	s := m.MaybeStats()
-	if s != nil {
-		logger("%v", *s)
-	}
+// MaybeStatsLog conditionally logs the snapshot of the recent sampling interval if the latter has lapsed, returning true if an
+// entry was logged.
+func (m *Meter) MaybeStatsLog(logger scribe.Logger) bool {
+	return m.MaybeStatsCall(func(stats MeterStats) {
+		logger("%v", stats)
+	})
 }
