@@ -395,7 +395,6 @@ func onLeaderPoll(h *harvest) {
 		return
 	}
 
-	var totalProduceTime time.Duration
 	if len(records) > 0 {
 		sendBegin := time.Now()
 		h.logger().T()("Leader poll: marked %d starting with ID: %d, took %v", len(records), records[0].ID, sendBegin.Sub(markBegin))
@@ -406,7 +405,7 @@ func onLeaderPoll(h *harvest) {
 			h.sendBattery.enqueue(rec)
 		}
 		enqueueWatcher.End()
-		h.logger().T()("Send took %v, average produce time: %v", time.Now().Sub(sendBegin), time.Duration(int(totalProduceTime)/len(records)))
+		h.logger().T()("Send took %v", time.Now().Sub(sendBegin))
 	} else {
 		time.Sleep(*h.config.Limits.MarkBackoff)
 	}

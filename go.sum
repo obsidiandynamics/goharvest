@@ -48,6 +48,8 @@ github.com/niemeyer/pretty v0.0.0-20200227124842-a10e7caefd8e h1:fD57ERR4JtEqsWb
 github.com/niemeyer/pretty v0.0.0-20200227124842-a10e7caefd8e/go.mod h1:zD1mROLANZcx1PVRCS0qkT7pwLkGfwJo4zjcN/Tysno=
 github.com/obsidiandynamics/goneli v0.3.0 h1:DvCzJEEIYE8UoVD7+yPyDTf4Oxa59/yhs8SbHH4WXdw=
 github.com/obsidiandynamics/goneli v0.3.0/go.mod h1:1i3mTL/PaaDKu6f+hlndeRUCbV8uiDxu+203vBpn6oE=
+github.com/obsidiandynamics/goneli v0.4.0 h1:Kts/9LpojWn9AH1r8sE+Ghgv+otG0mb3FYyQP5A+uPU=
+github.com/obsidiandynamics/goneli v0.4.0/go.mod h1:1i3mTL/PaaDKu6f+hlndeRUCbV8uiDxu+203vBpn6oE=
 github.com/obsidiandynamics/libstdgo v0.4.1 h1:ZUnz+72xQSMgAjEqxp7i7NOBZlu6AcAE6ppmvVKxK3M=
 github.com/obsidiandynamics/libstdgo v0.4.1/go.mod h1:0gKiFsJhfrlCqbWFNhDDUJgj6XbXWZyrl0JS/C+jU5g=
 github.com/pkg/errors v0.8.1 h1:iURUrRGxPUNPdy5/HRSm+Yj6okJ6UtLINN0Q9M4+h3I=
