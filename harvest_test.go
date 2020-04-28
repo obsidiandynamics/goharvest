@@ -667,7 +667,7 @@ func TestDrainInFlightRecords_failedDelivery(t *testing.T) {
 	assert.Nil(t, h.Await())
 }
 
-func TestNonFatalErrorInMarkQuery(t *testing.T) {
+func TestErrorInMarkQuery(t *testing.T) {
 	m, db, neli, config := fixtures{}.create()
 
 	db.f.Mark = func(m *dbMock, leaderID uuid.UUID, limit int) ([]OutboxRecord, error) {
@@ -685,6 +685,10 @@ func TestNonFatalErrorInMarkQuery(t *testing.T) {
 	wait(t).UntilAsserted(m.ContainsEntries().
 		Having(scribe.LogLevel(scribe.Warn)).
 		Having(scribe.MessageContaining("Error executing mark query")).
+		Passes(scribe.CountAtLeast(1)))
+	wait(t).UntilAsserted(m.ContainsEntries().
+		Having(scribe.LogLevel(scribe.Debug)).
+		Having(scribe.MessageContaining("Remark requested")).
 		Passes(scribe.CountAtLeast(1)))
 	assert.Equal(t, Running, h.State())
 
