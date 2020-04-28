@@ -397,7 +397,8 @@ func onLeaderPoll(h *harvest) {
 
 	if len(records) > 0 {
 		sendBegin := time.Now()
-		h.logger().T()("Leader poll: marked %d starting with ID: %d, took %v", len(records), records[0].ID, sendBegin.Sub(markBegin))
+		h.logger().T()("Leader poll: marked %d in the range %d-%d, took %v",
+			len(records), records[0].ID, records[len(records)-1].ID, sendBegin.Sub(markBegin))
 
 		enqueueWatcher := h.watch("enqueue marked records")
 		for _, rec := range records {
