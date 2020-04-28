@@ -407,6 +407,7 @@ func onLeaderPoll(h *harvest) {
 		enqueueWatcher.End()
 		h.logger().T()("Send took %v", time.Now().Sub(sendBegin))
 	} else {
+		h.logger().T()("Empty poll, in-flight: %d", h.inFlightRecords.GetInt())
 		time.Sleep(*h.config.Limits.MarkBackoff)
 	}
 }

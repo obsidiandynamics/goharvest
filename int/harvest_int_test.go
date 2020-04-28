@@ -196,7 +196,7 @@ func test(t *testing.T, numHarvests int, spawnInterval time.Duration, producerFa
 			DataSource:    dataSource,
 			Limits: Limits{
 				MinPollInterval: Duration(100 * time.Millisecond),
-				MarkBackoff:     Duration(1 * time.Millisecond),
+				MarkBackoff:     Duration(10 * time.Millisecond),
 				IOErrorBackoff:  Duration(1 * time.Millisecond),
 			},
 		}
