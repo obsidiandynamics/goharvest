@@ -391,6 +391,9 @@ func onLeaderPoll(h *harvest) {
 
 	if err != nil {
 		h.logger().W()("Error executing mark query: %v", err)
+		// When an error occurs during marking, we cannot just backoff and retry, as the error could have
+		// occurred on the return leg (i.e. DB operation succeeded on the server, but timed out on the client).
+		h.forceRemarkFlag.Set(1)
 		time.Sleep(*h.config.Limits.IOErrorBackoff)
 		return
 	}
