@@ -298,7 +298,7 @@ func (h *harvest) spawnSendBattery() {
 		}()
 		defer func() {
 			go func() {
-				// A bug in confluent-kafka-go occasionally causes an indefinite syscall hang in Close(), after it closes
+				// A bug in confluent-kafka-go (#463) occasionally causes an indefinite syscall hang in Close(), after it closes
 				// the Events channel. So we delegate this to a separate goroutine — better an orphaned goroutine than a
 				// frozen harvester. (The rest of the battery will still unwind normally.)
 				closeWatcher := h.watch("close producer")
