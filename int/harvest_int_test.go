@@ -43,7 +43,7 @@ const (
 	receiverGroupID               = kafkaNamespace + ".receiver_group"
 	bootstrapServers              = "localhost:9092"
 	dataSource                    = "host=localhost port=5432 user=postgres password= dbname=postgres sslmode=disable"
-	generateInterval              = 5 * time.Millisecond
+	generateInterval              = 10 * time.Millisecond
 	generateRecordsPerTxn         = 20
 	generateMinRecords            = 100
 	generateUniqueKeys            = 10
