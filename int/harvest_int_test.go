@@ -57,11 +57,12 @@ var scr = scribe.New(overlog.Bind(logger))
 
 func openExternals() externals {
 	cons, err := kafka.NewConsumer(&kafka.ConfigMap{
-		"bootstrap.servers":  bootstrapServers,
-		"group.id":           receiverGroupID,
-		"enable.auto.commit": true,
-		"auto.offset.reset":  "earliest",
-		"socket.timeout.ms":  10000,
+		"bootstrap.servers":        bootstrapServers,
+		"group.id":                 receiverGroupID,
+		"enable.auto.commit":       true,
+		"auto.offset.reset":        "earliest",
+		"socket.timeout.ms":        10000,
+		"allow.auto.create.topics": true,
 		// "debug":              "all",
 	})
 	if err != nil {
