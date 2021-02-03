@@ -14,6 +14,7 @@ import (
 	"github.com/obsidiandynamics/libstdgo/diags"
 	"github.com/obsidiandynamics/libstdgo/scribe"
 	"gopkg.in/confluentinc/confluent-kafka-go.v1/kafka"
+	_ "gopkg.in/confluentinc/confluent-kafka-go.v1/kafka/librdkafka"
 )
 
 var noLeader uuid.UUID
