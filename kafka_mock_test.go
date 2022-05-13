@@ -3,8 +3,8 @@ package goharvest
 import (
 	"time"
 
+	"github.com/confluentinc/confluent-kafka-go/kafka"
 	"github.com/obsidiandynamics/libstdgo/concurrent"
-	"gopkg.in/confluentinc/confluent-kafka-go.v1/kafka"
 )
 
 type consMockFuncs struct {
