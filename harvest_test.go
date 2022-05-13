@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/confluentinc/confluent-kafka-go/kafka"
 	"github.com/google/uuid"
 	"github.com/obsidiandynamics/goneli"
 	"github.com/obsidiandynamics/libstdgo/check"
@@ -15,7 +16,6 @@ import (
 	"github.com/obsidiandynamics/libstdgo/scribe"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"gopkg.in/confluentinc/confluent-kafka-go.v1/kafka"
 )
 
 func wait(t check.Tester) check.Timesert {

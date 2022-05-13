@@ -1,9 +1,9 @@
 package int
 
 import (
+	"github.com/confluentinc/confluent-kafka-go/kafka"
 	"github.com/obsidiandynamics/goharvest"
 	"github.com/obsidiandynamics/libstdgo/fault"
-	"gopkg.in/confluentinc/confluent-kafka-go.v1/kafka"
 )
 
 type ProducerFaultSpecs struct {
